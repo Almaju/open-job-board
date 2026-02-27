@@ -13,6 +13,9 @@
       <nav>
         <a href="search.html">Search Jobs</a>
         <a href="docs.html">API Docs</a>
+        <a href="guide.html">Guide</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="self-hosting.html">Self-Hosting</a>
         <a href="https://github.com/almaju/open-job-board">GitHub</a>
       </nav>
     </div>
@@ -24,7 +27,8 @@
       <p>Anyone can post jobs. Anyone can query them. No sign-up required.</p>
       <div class="hero-actions">
         <a href="search.html" class="btn btn-primary">Search Jobs</a>
-        <a href="docs.html" class="btn btn-secondary">API Documentation</a>
+        <a href="guide.html" class="btn btn-secondary">Getting Started</a>
+        <a href="docs.html" class="btn btn-secondary">API Reference</a>
       </div>
     </section>
 
@@ -74,6 +78,28 @@ curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" 
         <div class="feature-card">
           <h3>Powerful Filtering</h3>
           <p>Filter by country, city, remote, employment type, salary range, and source. Sort by recency or relevance.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <h2>Documentation</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3><a href="guide.html">Getting Started</a></h3>
+          <p>Step-by-step guide to querying, searching, and submitting jobs. Includes examples in curl, Python, and JavaScript.</p>
+        </div>
+        <div class="feature-card">
+          <h3><a href="docs.html">API Reference</a></h3>
+          <p>Interactive OpenAPI documentation with Swagger UI. Try out endpoints directly in your browser.</p>
+        </div>
+        <div class="feature-card">
+          <h3><a href="architecture.html">Architecture</a></h3>
+          <p>System design, database schema, security model, and CI/CD pipelines explained.</p>
+        </div>
+        <div class="feature-card">
+          <h3><a href="self-hosting.html">Self-Hosting</a></h3>
+          <p>Fork, configure Supabase, and deploy your own instance in minutes.</p>
         </div>
       </div>
     </section>

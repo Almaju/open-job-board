@@ -452,6 +452,114 @@ h1.logo { margin: 0; font-size: 18px; }
 }
 
 /* ============================================================
+   Documentation content
+   ============================================================ */
+
+.doc-content section {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.doc-content section:last-of-type {
+  border-bottom: none;
+}
+
+.doc-content h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.3px;
+}
+
+.doc-content h3 {
+  margin-top: 28px;
+  font-size: 1.05rem;
+  color: var(--color-muted);
+}
+
+.doc-content p {
+  max-width: 70ch;
+}
+
+.lead {
+  font-size: 1.1rem;
+  color: var(--color-muted);
+  margin-bottom: 32px;
+}
+
+/* Table of contents */
+.toc {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.toc h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.toc ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.toc li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.toc a {
+  text-decoration: none;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+/* Documentation tables */
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.doc-table th,
+.doc-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+}
+
+.doc-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--color-muted);
+}
+
+.doc-table td code {
+  background: var(--color-tag-bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+/* Diagrams */
+.diagram {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ============================================================
    Responsive
    ============================================================ */
 
@@ -459,4 +567,10 @@ h1.logo { margin: 0; font-size: 18px; }
   .hero h2 { font-size: 1.6rem; }
   .search-row { flex-direction: column; }
   .search-row .btn { width: 100%; }
+
+  .site-header nav { gap: 12px; flex-wrap: wrap; }
+  .site-header nav a { font-size: 12px; }
+
+  .doc-table { font-size: 12px; }
+  .doc-table th, .doc-table td { padding: 8px 10px; }
 }

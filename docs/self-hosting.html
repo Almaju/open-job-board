@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Hosting - Open Job Board</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Open Job Board</a>
+      <nav>
+        <a href="search.html">Search Jobs</a>
+        <a href="docs.html">API Docs</a>
+        <a href="guide.html">Guide</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="self-hosting.html" class="active">Self-Hosting</a>
+        <a href="https://github.com/almaju/open-job-board">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container doc-content">
+    <h1 class="page-title">Self-Hosting Guide</h1>
+    <p class="lead">Deploy your own instance of the Open Job Board with Supabase and GitHub Pages.</p>
+
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#fork">Fork the Repository</a></li>
+        <li><a href="#supabase-setup">Supabase Setup</a></li>
+        <li><a href="#github-secrets">Configure GitHub Secrets</a></li>
+        <li><a href="#deploy">Deploy</a></li>
+        <li><a href="#update-urls">Update API URLs</a></li>
+        <li><a href="#local-dev">Local Development</a></li>
+        <li><a href="#api-keys">Managing API Keys</a></li>
+      </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <section id="prerequisites">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>A <a href="https://github.com" rel="noopener">GitHub</a> account</li>
+        <li>A <a href="https://supabase.com" rel="noopener">Supabase</a> account (free tier works)</li>
+        <li><a href="https://supabase.com/docs/guides/cli" rel="noopener">Supabase CLI</a> installed (for local development)</li>
+        <li>Node.js 18+ (optional, for validating the OpenAPI spec locally)</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="fork">
+      <h2>Fork the Repository</h2>
+      <ol>
+        <li>Go to <a href="https://github.com/almaju/open-job-board" rel="noopener">github.com/almaju/open-job-board</a></li>
+        <li>Click <strong>Fork</strong> to create your own copy</li>
+        <li>Clone your fork locally:
+          <pre><code class="language-bash">git clone https://github.com/YOUR-USERNAME/open-job-board.git
+cd open-job-board</code></pre>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="supabase-setup">
+      <h2>Supabase Setup</h2>
+
+      <h3>1. Create a new Supabase project</h3>
+      <ol>
+        <li>Go to <a href="https://app.supabase.com" rel="noopener">app.supabase.com</a> and create a new project</li>
+        <li>Choose a name, database password, and region</li>
+        <li>Note down the project reference ID (shown in the URL: <code>app.supabase.com/project/&lt;ref-id&gt;</code>)</li>
+      </ol>
+
+      <h3>2. Link your local project</h3>
+      <pre><code class="language-bash">supabase link --project-ref YOUR_PROJECT_REF</code></pre>
+
+      <h3>3. Run migrations</h3>
+      <pre><code class="language-bash">supabase db push</code></pre>
+      <p>This applies all five migrations in order: table creation, full-text search, API keys, rate limits, and RLS policies.</p>
+
+      <h3>4. Deploy the Edge Function</h3>
+      <pre><code class="language-bash">supabase functions deploy submit-job</code></pre>
+
+      <h3>5. (Optional) Seed sample data</h3>
+      <pre><code class="language-bash">supabase db reset</code></pre>
+      <p>This resets the database and loads the 10 sample jobs from <code>supabase/seed.sql</code>. Only use this in development.</p>
+
+      <h3>6. Get your API credentials</h3>
+      <p>From your Supabase dashboard (<strong>Settings &rarr; API</strong>), note:</p>
+      <ul>
+        <li><strong>Project URL</strong>: <code>https://YOUR_REF.supabase.co</code></li>
+        <li><strong>Anon (public) key</strong>: safe to embed in client-side code</li>
+        <li><strong>Service role key</strong>: used by Edge Functions (never expose publicly)</li>
+      </ul>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="github-secrets">
+      <h2>Configure GitHub Secrets</h2>
+      <p>In your forked repository, go to <strong>Settings &rarr; Secrets and variables &rarr; Actions</strong> and add:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr><th>Secret Name</th><th>Value</th><th>Used By</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>SUPABASE_ACCESS_TOKEN</code></td>
+            <td>Your Supabase personal access token (<a href="https://app.supabase.com/account/tokens" rel="noopener">generate here</a>)</td>
+            <td>deploy-functions, run-migrations</td>
+          </tr>
+          <tr>
+            <td><code>SUPABASE_DB_PASSWORD</code></td>
+            <td>The database password you set when creating the project</td>
+            <td>run-migrations</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Enable GitHub Pages</h3>
+      <ol>
+        <li>Go to <strong>Settings &rarr; Pages</strong></li>
+        <li>Set <strong>Source</strong> to <strong>GitHub Actions</strong></li>
+      </ol>
+      <p>The <code>deploy-pages.yml</code> workflow handles the rest automatically.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="deploy">
+      <h2>Deploy</h2>
+      <p>Push to <code>main</code> and GitHub Actions will automatically:</p>
+      <ol>
+        <li>Deploy the documentation site to GitHub Pages (if <code>docs/</code> changed)</li>
+        <li>Deploy Edge Functions (if <code>supabase/functions/</code> changed)</li>
+        <li>Run database migrations (if <code>supabase/migrations/</code> changed)</li>
+      </ol>
+      <p>Your documentation will be available at <code>https://YOUR-USERNAME.github.io/open-job-board/</code>.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="update-urls">
+      <h2>Update API URLs</h2>
+      <p>After setting up your own Supabase project, update the API URLs and keys in these files:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr><th>File</th><th>What to Change</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>docs/assets/search.js</code></td>
+            <td><code>SUPABASE_URL</code> and <code>ANON_KEY</code> constants at the top</td>
+          </tr>
+          <tr>
+            <td><code>docs/index.html</code></td>
+            <td>API URLs and anon key in the quick-start code examples</td>
+          </tr>
+          <tr>
+            <td><code>docs/openapi.yaml</code></td>
+            <td><code>servers[].url</code> values and the anon key in the security scheme description</td>
+          </tr>
+          <tr>
+            <td><code>docs/guide.html</code></td>
+            <td>API URLs and anon key in code examples</td>
+          </tr>
+          <tr>
+            <td><code>README.md</code></td>
+            <td>API URLs, anon key, and GitHub Pages URL</td>
+          </tr>
+          <tr>
+            <td><code>supabase/config.toml</code></td>
+            <td><code>project_id</code> value</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>A quick way to find all references:</p>
+      <pre><code class="language-bash">grep -r "ppubgurkauoptjsuyfff" --include="*.html" --include="*.js" --include="*.yaml" --include="*.md"</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="local-dev">
+      <h2>Local Development</h2>
+
+      <h3>Start the local Supabase stack</h3>
+      <pre><code class="language-bash"># Start local Supabase (PostgreSQL, PostgREST, Studio, etc.)
+supabase start
+
+# Apply migrations and seed data
+supabase db reset</code></pre>
+
+      <p>This starts a local PostgreSQL instance, PostgREST API, and the Supabase Studio dashboard. The local API URL will be printed in the terminal (typically <code>http://localhost:54321</code>).</p>
+
+      <h3>Serve the Edge Function locally</h3>
+      <pre><code class="language-bash">supabase functions serve submit-job --env-file supabase/.env.local</code></pre>
+
+      <h3>Serve the documentation site locally</h3>
+      <p>Any static file server works:</p>
+      <pre><code class="language-bash"># Using Python
+python3 -m http.server 8000 --directory docs
+
+# Using Node.js (npx)
+npx serve docs
+
+# Using PHP
+php -S localhost:8000 -t docs</code></pre>
+
+      <p>Then open <code>http://localhost:8000</code> in your browser.</p>
+
+      <h3>Validate the OpenAPI spec locally</h3>
+      <pre><code class="language-bash">npx @redocly/cli lint docs/openapi.yaml</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="api-keys">
+      <h2>Managing API Keys</h2>
+      <p>API keys are stored as SHA-256 hashes in the <code>api_keys</code> table. To create a new key for a trusted scraper:</p>
+
+      <pre><code class="language-sql">-- Generate a random key (do this outside the database, e.g. with openssl)
+-- openssl rand -hex 32
+
+-- Insert the SHA-256 hash of the key
+INSERT INTO api_keys (key_hash, name, owner_email, rate_limit)
+VALUES (
+  encode(sha256(decode('your-hex-key-here', 'hex')), 'hex'),
+  'My Scraper',
+  'contact@example.com',
+  200  -- requests per minute
+);
+</code></pre>
+
+      <p>The scraper then sends the raw key in the <code>X-API-Key</code> header. The Edge Function hashes the incoming key and looks it up in the database.</p>
+
+      <h3>Revoking a key</h3>
+      <pre><code class="language-sql">UPDATE api_keys SET is_active = false WHERE name = 'My Scraper';</code></pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>

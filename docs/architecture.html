@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture - Open Job Board</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Open Job Board</a>
+      <nav>
+        <a href="search.html">Search Jobs</a>
+        <a href="docs.html">API Docs</a>
+        <a href="guide.html">Guide</a>
+        <a href="architecture.html" class="active">Architecture</a>
+        <a href="self-hosting.html">Self-Hosting</a>
+        <a href="https://github.com/almaju/open-job-board">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container doc-content">
+    <h1 class="page-title">Architecture</h1>
+    <p class="lead">How the Open Job Board is built — no servers, just Supabase + GitHub.</p>
+
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#overview">System Overview</a></li>
+        <li><a href="#components">Components</a></li>
+        <li><a href="#database">Database Schema</a></li>
+        <li><a href="#search">Full-Text Search</a></li>
+        <li><a href="#security">Security Model</a></li>
+        <li><a href="#cicd">CI/CD Pipelines</a></li>
+        <li><a href="#project-structure">Project Structure</a></li>
+      </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <section id="overview">
+      <h2>System Overview</h2>
+      <p>The Open Job Board runs entirely on managed services with no custom servers:</p>
+
+      <pre class="diagram"><code>
+  ┌──────────────┐     ┌─────────────────────────────────────────────┐
+  │   Browsers   │     │              Supabase                       │
+  │   & Clients  │     │                                             │
+  │              │     │  ┌──────────┐   ┌───────────────────────┐  │
+  │  ┌────────┐  │────▶│  │PostgREST │   │   PostgreSQL          │  │
+  │  │ Search │  │ GET │  │ (REST)   │──▶│                       │  │
+  │  │  Page  │  │     │  └──────────┘   │  jobs                 │  │
+  │  └────────┘  │     │                 │  api_keys              │  │
+  │              │     │  ┌──────────┐   │  rate_limits           │  │
+  │  ┌────────┐  │────▶│  │  Edge    │   │                       │  │
+  │  │Scrapers│  │POST │  │Functions │──▶│  RPC: search_jobs     │  │
+  │  └────────┘  │     │  │ (Deno)  │   │  RPC: get_job_detail  │  │
+  │              │     │  └──────────┘   │  RPC: check_rate_limit│  │
+  └──────────────┘     │                 └───────────────────────┘  │
+                       └─────────────────────────────────────────────┘
+
+  ┌──────────────┐
+  │ GitHub Pages │     Static HTML/CSS/JS documentation site
+  │  docs/       │     Deployed automatically on push to main
+  └──────────────┘
+
+  ┌──────────────┐
+  │GitHub Actions│     CI/CD: deploy pages, functions, migrations,
+  │  .github/    │     and validate OpenAPI spec
+  └──────────────┘</code></pre>
+
+      <p>The architecture separates <strong>reads</strong> (via PostgREST, the auto-generated REST API) from <strong>writes</strong> (via a Deno Edge Function that validates and rate-limits submissions).</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="components">
+      <h2>Components</h2>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>PostgreSQL Database</h3>
+          <p>Managed by Supabase. Stores all job listings, API keys, and rate limit records. Full-text search via <code>tsvector</code>. Row Level Security enforces access control.</p>
+        </div>
+        <div class="feature-card">
+          <h3>PostgREST (Read API)</h3>
+          <p>Auto-generated REST API from the database schema. Supports filtering, pagination, column selection, and sorting out of the box. No custom code needed for reads.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Edge Function (Write API)</h3>
+          <p>A Deno/TypeScript function that validates submissions with Zod, checks rate limits, handles deduplication, and inserts jobs using the service role key.</p>
+        </div>
+        <div class="feature-card">
+          <h3>GitHub Pages (Docs)</h3>
+          <p>Static HTML/CSS/JS site served from the <code>docs/</code> directory. Includes landing page, interactive search UI, Swagger API docs, and these guides.</p>
+        </div>
+        <div class="feature-card">
+          <h3>GitHub Actions (CI/CD)</h3>
+          <p>Four workflows automate deployment of pages, functions, and migrations. OpenAPI spec is validated on every pull request.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="database">
+      <h2>Database Schema</h2>
+
+      <h3>jobs table</h3>
+      <p>The main table storing all job listings. Key columns:</p>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Column Group</th><th>Fields</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Identity</strong></td>
+            <td><code>id</code>, <code>created_at</code>, <code>updated_at</code></td>
+            <td>UUID primary key, auto-timestamps</td>
+          </tr>
+          <tr>
+            <td><strong>Origin</strong></td>
+            <td><code>source</code>, <code>reference</code>, <code>contact</code></td>
+            <td>UNIQUE constraint on <code>(source, reference)</code> for dedup</td>
+          </tr>
+          <tr>
+            <td><strong>Core</strong></td>
+            <td><code>title</code>, <code>description</code>, <code>responsibilities</code>, <code>benefits</code>, <code>employment_type</code></td>
+            <td><code>responsibilities</code> and <code>benefits</code> are text arrays</td>
+          </tr>
+          <tr>
+            <td><strong>Company</strong></td>
+            <td><code>company_name</code>, <code>company_website</code>, <code>company_sector</code>, <code>company_anecdote</code>, <code>company_locations</code></td>
+            <td>Denormalized (no separate company table)</td>
+          </tr>
+          <tr>
+            <td><strong>Location</strong></td>
+            <td><code>location_city</code>, <code>location_country</code>, <code>remote_full</code>, <code>remote_days</code></td>
+            <td>Supports full remote, hybrid, and on-site</td>
+          </tr>
+          <tr>
+            <td><strong>Requirements</strong></td>
+            <td><code>requirements</code></td>
+            <td>JSONB with <code>qualifications</code>, <code>hard_skills</code>, <code>soft_skills</code>, <code>others</code></td>
+          </tr>
+          <tr>
+            <td><strong>Salary</strong></td>
+            <td><code>salary_currency</code>, <code>salary_min</code>, <code>salary_max</code>, <code>salary_period</code></td>
+            <td>Supports hourly, daily, weekly, monthly, yearly periods</td>
+          </tr>
+          <tr>
+            <td><strong>Moderation</strong></td>
+            <td><code>is_active</code>, <code>flagged</code></td>
+            <td>Only active, non-flagged jobs are visible via the API</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>api_keys table</h3>
+      <p>Stores SHA-256 hashes of API keys for trusted scrapers. Tracks last usage and configurable per-key rate limits.</p>
+
+      <h3>rate_limits table</h3>
+      <p>Implements a sliding-window rate limiter using per-minute buckets. Each row tracks an identifier (IP address or API key hash) and its request count for a given window.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="search">
+      <h2>Full-Text Search</h2>
+      <p>Search is powered by PostgreSQL's built-in <code>tsvector</code> full-text search with weighted ranking:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr><th>Weight</th><th>Fields</th><th>Priority</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A (highest)</td><td>title</td><td>Job titles match most strongly</td></tr>
+          <tr><td>B</td><td>company_name</td><td>Company name is next most relevant</td></tr>
+          <tr><td>C</td><td>description</td><td>Full description text</td></tr>
+          <tr><td>D (lowest)</td><td>location_city, location_country</td><td>Location matches have lowest weight</td></tr>
+        </tbody>
+      </table>
+
+      <p>A <code>search_vector</code> column (type <code>tsvector</code>) is maintained automatically via a trigger. It's indexed with a GIN index for fast lookups. The <code>search_jobs</code> RPC function combines full-text ranking with additional filters (country, remote, salary, etc.).</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="security">
+      <h2>Security Model</h2>
+
+      <h3>Row Level Security (RLS)</h3>
+      <p>Every table has RLS enabled. Access policies:</p>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Table</th><th>Public Access</th><th>Restrictions</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jobs</code></td>
+            <td>SELECT only</td>
+            <td>Only rows where <code>is_active = true</code></td>
+          </tr>
+          <tr>
+            <td><code>api_keys</code></td>
+            <td>None</td>
+            <td>Only accessible via service role key (Edge Functions)</td>
+          </tr>
+          <tr>
+            <td><code>rate_limits</code></td>
+            <td>None</td>
+            <td>Only accessible via service role key (Edge Functions)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Write path security</h3>
+      <ul>
+        <li>The <code>submit-job</code> Edge Function validates input with Zod schemas</li>
+        <li>Rate limiting prevents abuse (10 req/min anonymous, configurable with API key)</li>
+        <li>Deduplication via <code>UNIQUE(source, reference)</code> prevents duplicate entries</li>
+        <li>The Edge Function uses the Supabase service role key to bypass RLS for inserts</li>
+        <li>API key hashes (SHA-256) are stored, never the raw keys</li>
+      </ul>
+
+      <h3>Public anon key</h3>
+      <p>The <code>apikey</code> header value is intentionally public. It only grants read access to active jobs — RLS ensures no sensitive data is exposed.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="cicd">
+      <h2>CI/CD Pipelines</h2>
+      <p>Four GitHub Actions workflows automate the entire deployment lifecycle:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr><th>Workflow</th><th>Trigger</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>deploy-pages.yml</code></td>
+            <td>Push to <code>main</code>, changes in <code>docs/**</code></td>
+            <td>Deploys the static documentation site to GitHub Pages</td>
+          </tr>
+          <tr>
+            <td><code>deploy-functions.yml</code></td>
+            <td>Push to <code>main</code>, changes in <code>supabase/functions/**</code></td>
+            <td>Deploys Edge Functions to Supabase</td>
+          </tr>
+          <tr>
+            <td><code>run-migrations.yml</code></td>
+            <td>Push to <code>main</code>, changes in <code>supabase/migrations/**</code></td>
+            <td>Runs database migrations on Supabase</td>
+          </tr>
+          <tr>
+            <td><code>validate-openapi.yml</code></td>
+            <td>PR or push to <code>main</code>, changes in <code>docs/openapi.yaml</code></td>
+            <td>Validates OpenAPI spec with Redocly CLI</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Required GitHub secrets for deployment:</p>
+      <ul>
+        <li><code>SUPABASE_ACCESS_TOKEN</code> — for deploying functions and running migrations</li>
+        <li><code>SUPABASE_DB_PASSWORD</code> — for running migrations</li>
+      </ul>
+      <p>GitHub Pages deployment uses the built-in <code>GITHUB_TOKEN</code> and requires no additional secrets.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="project-structure">
+      <h2>Project Structure</h2>
+      <pre><code>open-job-board/
+├── .github/workflows/           CI/CD pipelines
+│   ├── deploy-pages.yml         Deploy docs to GitHub Pages
+│   ├── deploy-functions.yml     Deploy Edge Functions
+│   ├── run-migrations.yml       Run database migrations
+│   └── validate-openapi.yml     Validate OpenAPI spec on PRs
+├── docs/                        Static documentation site
+│   ├── index.html               Landing page
+│   ├── search.html              Interactive job search UI
+│   ├── docs.html                Swagger UI API reference
+│   ├── guide.html               Getting started guide
+│   ├── architecture.html        Architecture documentation
+│   ├── self-hosting.html        Self-hosting guide
+│   ├── openapi.yaml             OpenAPI 3.1.0 specification
+│   └── assets/
+│       ├── style.css            Shared stylesheet
+│       └── search.js            Client-side search logic
+├── supabase/
+│   ├── config.toml              Supabase project configuration
+│   ├── seed.sql                 Sample data (10 realistic jobs)
+│   ├── functions/
+│   │   ├── submit-job/index.ts  Job submission Edge Function
+│   │   └── _shared/cors.ts     CORS headers helper
+│   └── migrations/              Sequential database migrations
+│       ├── ..._init_jobs.sql    Create jobs table + indexes
+│       ├── ..._search_vector.sql Full-text search setup
+│       ├── ..._api_keys.sql     API keys table
+│       ├── ..._rate_limits.sql  Rate limiting
+│       └── ..._rls_policies.sql Row Level Security
+├── README.md
+└── LICENSE                      MIT</code></pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>

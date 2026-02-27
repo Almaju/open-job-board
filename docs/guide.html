@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started - Open Job Board</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Open Job Board</a>
+      <nav>
+        <a href="search.html">Search Jobs</a>
+        <a href="docs.html">API Docs</a>
+        <a href="guide.html" class="active">Guide</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="self-hosting.html">Self-Hosting</a>
+        <a href="https://github.com/almaju/open-job-board">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container doc-content">
+    <h1 class="page-title">Getting Started</h1>
+    <p class="lead">Learn how to query, search, and submit jobs to the Open Job Board API.</p>
+
+    <nav class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#authentication">Authentication</a></li>
+        <li><a href="#list-jobs">Listing Jobs</a></li>
+        <li><a href="#filter-jobs">Filtering Jobs</a></li>
+        <li><a href="#search-jobs">Full-Text Search</a></li>
+        <li><a href="#job-detail">Job Detail</a></li>
+        <li><a href="#submit-jobs">Submitting Jobs</a></li>
+        <li><a href="#rate-limits">Rate Limits &amp; API Keys</a></li>
+        <li><a href="#error-handling">Error Handling</a></li>
+      </ol>
+    </nav>
+
+    <!-- ============================================================ -->
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>The Open Job Board exposes two base URLs:</p>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Purpose</th><th>Base URL</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Read</strong> (PostgREST)</td>
+            <td><code>https://ppubgurkauoptjsuyfff.supabase.co/rest/v1</code></td>
+          </tr>
+          <tr>
+            <td><strong>Write</strong> (Edge Functions)</td>
+            <td><code>https://ppubgurkauoptjsuyfff.supabase.co/functions/v1</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>All read endpoints use <a href="https://docs.postgrest.org/" rel="noopener">PostgREST</a> query syntax. The write endpoint is a Supabase Edge Function with built-in rate limiting and validation.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="authentication">
+      <h2>Authentication</h2>
+      <p>Every request to the read API requires the public anon key in the <code>apikey</code> header:</p>
+      <pre><code>apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B</code></pre>
+      <p>This key is intentionally public and safe to embed in client-side code. Row Level Security ensures read-only access to active jobs.</p>
+      <p>The submit endpoint requires no authentication by default. Optionally provide an <code>X-API-Key</code> header for higher rate limits.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="list-jobs">
+      <h2>Listing Jobs</h2>
+      <p>Fetch recent jobs with a simple GET request.</p>
+
+      <h3>curl</h3>
+      <pre><code class="language-bash">curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?order=posted_at.desc&limit=10" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+
+      <h3>Python</h3>
+      <pre><code class="language-python">import requests
+
+SUPABASE_URL = "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1"
+ANON_KEY = "sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"
+
+response = requests.get(
+    f"{SUPABASE_URL}/jobs",
+    headers={"apikey": ANON_KEY},
+    params={"order": "posted_at.desc", "limit": "10"},
+)
+
+jobs = response.json()
+for job in jobs:
+    print(f"{job['title']} at {job.get('company_name', 'N/A')}")</code></pre>
+
+      <h3>JavaScript (fetch)</h3>
+      <pre><code class="language-javascript">const SUPABASE_URL = "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1";
+const ANON_KEY = "sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B";
+
+const res = await fetch(
+  `${SUPABASE_URL}/jobs?order=posted_at.desc&limit=10`,
+  { headers: { apikey: ANON_KEY } }
+);
+
+const jobs = await res.json();
+jobs.forEach(job =>
+  console.log(`${job.title} at ${job.company_name ?? "N/A"}`)
+);</code></pre>
+
+      <h3>Select specific columns</h3>
+      <p>Use the <code>select</code> parameter to return only the fields you need:</p>
+      <pre><code class="language-bash">curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?select=id,title,company_name,salary_min,salary_max&limit=5" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="filter-jobs">
+      <h2>Filtering Jobs</h2>
+      <p>PostgREST supports powerful query operators appended directly to column names:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr><th>Operator</th><th>Meaning</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>eq.</code></td><td>Equals</td><td><code>?location_country=eq.France</code></td></tr>
+          <tr><td><code>neq.</code></td><td>Not equal</td><td><code>?employment_type=neq.internship</code></td></tr>
+          <tr><td><code>gt.</code></td><td>Greater than</td><td><code>?salary_min=gt.50000</code></td></tr>
+          <tr><td><code>gte.</code></td><td>Greater than or equal</td><td><code>?salary_min=gte.50000</code></td></tr>
+          <tr><td><code>lt.</code></td><td>Less than</td><td><code>?salary_max=lt.200000</code></td></tr>
+          <tr><td><code>lte.</code></td><td>Less than or equal</td><td><code>?salary_max=lte.200000</code></td></tr>
+          <tr><td><code>ilike.</code></td><td>Case-insensitive pattern</td><td><code>?title=ilike.*engineer*</code></td></tr>
+          <tr><td><code>is.</code></td><td>Is null/true/false</td><td><code>?remote_full=is.true</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Combining filters</h3>
+      <p>Add multiple query parameters to combine filters with AND logic:</p>
+      <pre><code class="language-bash"># Remote full-time jobs in Germany paying at least 80k
+curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?\
+location_country=eq.Germany&\
+remote_full=eq.true&\
+employment_type=eq.full-time&\
+salary_min=gte.80000&\
+order=posted_at.desc" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+
+      <h3>Pagination</h3>
+      <p>Use <code>limit</code> and <code>offset</code> for paginated results:</p>
+      <pre><code class="language-bash"># Page 1 (first 20 results)
+?order=posted_at.desc&limit=20&offset=0
+
+# Page 2
+?order=posted_at.desc&limit=20&offset=20
+
+# Page 3
+?order=posted_at.desc&limit=20&offset=40</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="search-jobs">
+      <h2>Full-Text Search</h2>
+      <p>For relevance-ranked results, use the <code>search_jobs</code> RPC endpoint. It searches across title, company name, description, and location fields with weighted ranking.</p>
+
+      <h3>curl</h3>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "senior golang engineer",
+    "country": "Germany",
+    "remote": true,
+    "salary_min_val": 80000,
+    "page_num": 1,
+    "page_size": 20
+  }'</code></pre>
+
+      <h3>Python</h3>
+      <pre><code class="language-python">response = requests.post(
+    f"{SUPABASE_URL}/rpc/search_jobs",
+    headers={
+        "apikey": ANON_KEY,
+        "Content-Type": "application/json",
+    },
+    json={
+        "query": "senior golang engineer",
+        "country": "Germany",
+        "remote": True,
+        "salary_min_val": 80000,
+        "page_num": 1,
+        "page_size": 20,
+    },
+)
+
+results = response.json()
+for job in results:
+    print(f"[{job['rank']:.2f}] {job['title']} — {job.get('company_name')}")</code></pre>
+
+      <h3>Available search parameters</h3>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>query</code></td><td>string</td><td>Full-text search (natural language, supports phrases)</td></tr>
+          <tr><td><code>country</code></td><td>string</td><td>Filter by country name</td></tr>
+          <tr><td><code>city</code></td><td>string</td><td>Filter by city name</td></tr>
+          <tr><td><code>remote</code></td><td>boolean</td><td>Filter to fully remote jobs</td></tr>
+          <tr><td><code>employment</code></td><td>string</td><td>Employment type (case-insensitive)</td></tr>
+          <tr><td><code>salary_min_val</code></td><td>number</td><td>Minimum salary filter</td></tr>
+          <tr><td><code>salary_max_val</code></td><td>number</td><td>Maximum salary filter</td></tr>
+          <tr><td><code>source_filter</code></td><td>string</td><td>Filter by source name</td></tr>
+          <tr><td><code>page_num</code></td><td>integer</td><td>Page number (1-based, default: 1)</td></tr>
+          <tr><td><code>page_size</code></td><td>integer</td><td>Results per page (max 100, default: 20)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="job-detail">
+      <h2>Job Detail</h2>
+      <p>Get a complete job record including the full description, responsibilities, requirements, and benefits:</p>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/get_job_detail" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{"job_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"}'</code></pre>
+      <p>Returns an array with 0 or 1 items. The full record includes fields not present in list views: <code>description</code>, <code>responsibilities</code>, <code>benefits</code>, <code>requirements</code> (with <code>qualifications</code>, <code>hard_skills</code>, <code>soft_skills</code>), and <code>contact</code>.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="submit-jobs">
+      <h2>Submitting Jobs</h2>
+      <p>Submit jobs via the Edge Function endpoint. Only <code>origin.source</code>, <code>title</code>, and <code>description</code> are required.</p>
+
+      <h3>Minimal submission</h3>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin": { "source": "my-scraper" },
+    "title": "Python Developer",
+    "description": "Join our team as a Python developer building data pipelines."
+  }'</code></pre>
+
+      <h3>Full submission with all fields</h3>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin": {
+      "source": "my-scraper",
+      "reference": "job-99999",
+      "contact": { "name": "Jane Recruiter", "email": "jobs@acme.com" }
+    },
+    "title": "Senior Backend Engineer",
+    "description": "We are looking for a senior backend engineer...",
+    "responsibilities": ["Design scalable APIs", "Mentor junior engineers"],
+    "company": {
+      "name": "Acme Corp",
+      "website": "https://acme.com",
+      "sector": "Technology",
+      "anecdote": "Fast-growing B2B logistics startup.",
+      "location": ["Berlin, Germany", "Amsterdam, Netherlands"]
+    },
+    "employment_type": "full-time",
+    "location": {
+      "city": "Berlin",
+      "country": "Germany",
+      "remote": { "full": true }
+    },
+    "requirements": {
+      "qualifications": ["5+ years backend experience"],
+      "hard_skills": ["Go", "PostgreSQL", "Kubernetes"],
+      "soft_skills": ["Strong written communication"]
+    },
+    "salary": { "currency": "EUR", "min": 90000, "max": 130000, "period": "yearly" },
+    "benefits": ["30 days vacation", "Health insurance", "Learning budget"],
+    "posted_at": "2026-02-27T10:00:00Z"
+  }'</code></pre>
+
+      <h3>Python example</h3>
+      <pre><code class="language-python">import requests
+
+response = requests.post(
+    "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job",
+    json={
+        "origin": {"source": "my-scraper", "reference": "job-42"},
+        "title": "Data Engineer",
+        "description": "Build and maintain our data infrastructure...",
+        "company": {"name": "DataCo", "sector": "Analytics"},
+        "location": {"country": "France", "remote": {"full": True}},
+        "salary": {"currency": "EUR", "min": 65000, "max": 90000, "period": "yearly"},
+    },
+)
+
+if response.status_code == 201:
+    print("Created:", response.json())
+elif response.status_code == 409:
+    print("Duplicate job, already exists")
+elif response.status_code == 422:
+    print("Validation error:", response.json())
+elif response.status_code == 429:
+    print("Rate limited, retry later")</code></pre>
+
+      <h3>Deduplication</h3>
+      <p>If you provide <code>origin.reference</code>, the API deduplicates on the combination of <code>source + reference</code>. Re-submitting the same job returns HTTP 409 instead of creating a duplicate. This makes it safe for scrapers to repeatedly submit without worrying about duplicates.</p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="rate-limits">
+      <h2>Rate Limits &amp; API Keys</h2>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Mode</th><th>Limit</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anonymous (no API key)</td><td>10 requests per minute per IP</td></tr>
+          <tr><td>With API key</td><td>Configurable (default 100 requests per minute)</td></tr>
+        </tbody>
+      </table>
+      <p>Rate limits apply only to the <code>/submit-job</code> endpoint. Read endpoints are not rate limited beyond Supabase's default limits.</p>
+
+      <h3>Requesting an API key</h3>
+      <p>For trusted scrapers or high-volume use cases, <a href="https://github.com/almaju/open-job-board/issues/new?title=API+Key+Request&body=Name%3A%0AEstimated+volume%3A%0AContact+email%3A">open a GitHub issue</a> with:</p>
+      <ul>
+        <li>Your scraper or company name</li>
+        <li>Estimated volume (jobs per day)</li>
+        <li>Contact email</li>
+      </ul>
+
+      <h3>Using an API key</h3>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key-here" \
+  -d '{ ... }'</code></pre>
+    </section>
+
+    <!-- ============================================================ -->
+    <section id="error-handling">
+      <h2>Error Handling</h2>
+      <p>The submit endpoint returns standard HTTP status codes:</p>
+      <table class="doc-table">
+        <thead>
+          <tr><th>Code</th><th>Meaning</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>201</code></td><td>Created</td><td>Job was submitted. Response includes <code>id</code> and <code>created_at</code>.</td></tr>
+          <tr><td><code>400</code></td><td>Bad Request</td><td>Invalid JSON body. Check your request format.</td></tr>
+          <tr><td><code>409</code></td><td>Conflict</td><td>Duplicate job (same <code>source + reference</code>). Safe to ignore.</td></tr>
+          <tr><td><code>422</code></td><td>Validation Error</td><td>Check <code>details.fieldErrors</code> for specific field issues.</td></tr>
+          <tr><td><code>429</code></td><td>Rate Limited</td><td>Wait 60 seconds and retry. Consider requesting an API key.</td></tr>
+          <tr><td><code>500</code></td><td>Server Error</td><td>Unexpected error. Retry or report a bug.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Example error response (422)</h3>
+      <pre><code class="language-json">{
+  "error": "Validation failed",
+  "details": {
+    "fieldErrors": {
+      "title": ["String must contain at least 2 character(s)"]
+    },
+    "formErrors": []
+  }
+}</code></pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>
