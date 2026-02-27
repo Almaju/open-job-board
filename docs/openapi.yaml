@@ -78,68 +78,82 @@ components:
           description: Name of the scraper or source that submitted this job
           example: "linkedin-scraper"
         reference:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           description: Original job ID from the source system
           example: "job-12345"
         title:
           type: string
           example: "Senior Backend Engineer"
         company_name:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "Acme Corp"
         company_sector:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "Technology"
         company_website:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           format: uri
           example: "https://acme.com"
         location_city:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "Berlin"
         location_country:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "Germany"
         remote_full:
-          type: boolean
-          nullable: true
+          type:
+            - boolean
+            - "null"
           description: True if the job is fully remote
         remote_days:
-          type: integer
-          nullable: true
+          type:
+            - integer
+            - "null"
           description: Number of remote days per week (for hybrid roles)
           example: 3
         employment_type:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "full-time"
         salary_currency:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
           example: "EUR"
         salary_min:
-          type: number
-          nullable: true
+          type:
+            - number
+            - "null"
           example: 80000
         salary_max:
-          type: number
-          nullable: true
+          type:
+            - number
+            - "null"
           example: 120000
         salary_period:
-          type: string
-          nullable: true
-          enum: [hourly, daily, weekly, monthly, yearly]
+          type:
+            - string
+            - "null"
+          enum: [hourly, daily, weekly, monthly, yearly, null]
           example: "yearly"
         posted_at:
-          type: string
+          type:
+            - string
+            - "null"
           format: date-time
-          nullable: true
         is_active:
           type: boolean
           example: true
@@ -164,8 +178,9 @@ components:
                 type: string
               example: ["Health insurance", "30 days vacation", "Remote work"]
             contact:
-              type: object
-              nullable: true
+              type:
+                - object
+                - "null"
               description: Contact person for this job listing
               properties:
                 name:
@@ -179,8 +194,9 @@ components:
                   type: string
                   example: "+49 30 12345678"
             company_anecdote:
-              type: string
-              nullable: true
+              type:
+                - string
+                - "null"
               description: A brief description or anecdote about the company
             company_locations:
               type: array
@@ -189,8 +205,9 @@ components:
               description: Physical office locations of the company
               example: ["Berlin, Germany", "Amsterdam, Netherlands"]
             requirements:
-              type: object
-              nullable: true
+              type:
+                - object
+                - "null"
               properties:
                 qualifications:
                   type: array
@@ -212,9 +229,10 @@ components:
                   items:
                     type: string
             parsed_at:
-              type: string
+              type:
+                - string
+                - "null"
               format: date-time
-              nullable: true
 
     SearchResult:
       type: object
@@ -398,6 +416,7 @@ components:
 paths:
   /jobs:
     get:
+      operationId: listJobs
       tags: [Jobs]
       summary: List jobs
       description: |
@@ -407,7 +426,7 @@ paths:
         - `?location_country=eq.France` — jobs in France
         - `?remote_full=eq.true` — fully remote jobs
         - `?employment_type=eq.full-time`
-        - `?salary_min=gte.50000` — salary floor ≥ 50,000
+        - `?salary_min=gte.50000` — salary floor >= 50,000
         - `?title=ilike.*engineer*` — title contains "engineer"
         - `?company_name=ilike.*google*`
         - `?order=posted_at.desc&limit=20&offset=0` — paginated, newest first
@@ -511,9 +530,16 @@ paths:
                   salary_max: 120000
                   salary_period: "yearly"
                   posted_at: "2026-02-20T10:00:00Z"
+        "406":
+          description: Unsupported media type or invalid PostgREST filter syntax
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /rpc/search_jobs:
     post:
+      operationId: searchJobs
       tags: [Jobs]
       summary: Full-text search jobs
       description: |
@@ -586,9 +612,16 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/SearchResult"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /rpc/get_job_detail:
     post:
+      operationId: getJobDetail
       tags: [Jobs]
       summary: Get full job detail
       description: |
@@ -620,9 +653,16 @@ paths:
                 items:
                   $ref: "#/components/schemas/JobDetail"
                 maxItems: 1
+        "400":
+          description: Invalid request body or malformed UUID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /submit-job:
     get:
+      operationId: healthCheck
       tags: [Submission]
       summary: Health check
       description: Returns the health status of the submit-job endpoint.
@@ -641,8 +681,15 @@ paths:
                   endpoint:
                     type: string
                     example: "submit-job"
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
     post:
+      operationId: submitJob
       tags: [Submission]
       summary: Submit a job listing
       description: |
