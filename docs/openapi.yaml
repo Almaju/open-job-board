@@ -1,0 +1,781 @@
+openapi: "3.1.0"
+info:
+  title: Open Job Board API
+  version: "1.0.0"
+  description: |
+    A free, open REST API for job listings. Anyone can submit jobs; anyone can query them.
+
+    ## Authentication
+
+    **Reading jobs** requires only the public anon key in the `apikey` header — it is safe to use from browsers and scripts.
+
+    **Submitting jobs** requires no authentication by default (rate limited to 10 req/min per IP).
+    Provide an `X-API-Key` header to unlock higher rate limits for trusted scrapers.
+
+    ## PostgREST filter syntax
+
+    The `GET /jobs` endpoint uses [PostgREST](https://docs.postgrest.org/) query operators:
+
+    | Operator | Meaning | Example |
+    |----------|---------|---------|
+    | `eq.` | equals | `?location_country=eq.France` |
+    | `ilike.` | case-insensitive pattern | `?title=ilike.*engineer*` |
+    | `gte.` | greater than or equal | `?salary_min=gte.50000` |
+    | `lte.` | less than or equal | `?salary_max=lte.200000` |
+    | `is.` | is null/true/false | `?remote_full=is.true` |
+
+  contact:
+    url: "https://github.com/almaju/open-job-board"
+  license:
+    name: MIT
+    url: "https://opensource.org/licenses/MIT"
+
+servers:
+  - url: "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1"
+    description: PostgREST read API
+  - url: "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1"
+    description: Edge Functions write API
+
+security:
+  - AnonKey: []
+
+tags:
+  - name: Jobs
+    description: Query job listings
+  - name: Submission
+    description: Submit new job listings
+
+components:
+  securitySchemes:
+    AnonKey:
+      type: apiKey
+      in: header
+      name: apikey
+      description: "Public anon key: `sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B`"
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: "Optional API key for trusted scrapers. Increases rate limit."
+
+  schemas:
+    Job:
+      type: object
+      description: A job listing (summary view — no description or full nested fields)
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        source:
+          type: string
+          description: Name of the scraper or source that submitted this job
+          example: "linkedin-scraper"
+        reference:
+          type: string
+          nullable: true
+          description: Original job ID from the source system
+          example: "job-12345"
+        title:
+          type: string
+          example: "Senior Backend Engineer"
+        company_name:
+          type: string
+          nullable: true
+          example: "Acme Corp"
+        company_sector:
+          type: string
+          nullable: true
+          example: "Technology"
+        company_website:
+          type: string
+          nullable: true
+          format: uri
+          example: "https://acme.com"
+        location_city:
+          type: string
+          nullable: true
+          example: "Berlin"
+        location_country:
+          type: string
+          nullable: true
+          example: "Germany"
+        remote_full:
+          type: boolean
+          nullable: true
+          description: True if the job is fully remote
+        remote_days:
+          type: integer
+          nullable: true
+          description: Number of remote days per week (for hybrid roles)
+          example: 3
+        employment_type:
+          type: string
+          nullable: true
+          example: "full-time"
+        salary_currency:
+          type: string
+          nullable: true
+          example: "EUR"
+        salary_min:
+          type: number
+          nullable: true
+          example: 80000
+        salary_max:
+          type: number
+          nullable: true
+          example: 120000
+        salary_period:
+          type: string
+          nullable: true
+          enum: [hourly, daily, weekly, monthly, yearly]
+          example: "yearly"
+        posted_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+          example: true
+
+    JobDetail:
+      allOf:
+        - $ref: "#/components/schemas/Job"
+        - type: object
+          description: Full job record including description, requirements, and all nested fields
+          properties:
+            description:
+              type: string
+              example: "We are looking for a senior backend engineer to join our platform team..."
+            responsibilities:
+              type: array
+              items:
+                type: string
+              example: ["Design and build scalable APIs", "Mentor junior engineers"]
+            benefits:
+              type: array
+              items:
+                type: string
+              example: ["Health insurance", "30 days vacation", "Remote work"]
+            contact:
+              type: object
+              nullable: true
+              description: Contact person for this job listing
+              properties:
+                name:
+                  type: string
+                  example: "Jane Recruiter"
+                email:
+                  type: string
+                  format: email
+                  example: "jobs@acme.com"
+                phone:
+                  type: string
+                  example: "+49 30 12345678"
+            company_anecdote:
+              type: string
+              nullable: true
+              description: A brief description or anecdote about the company
+            company_locations:
+              type: array
+              items:
+                type: string
+              description: Physical office locations of the company
+              example: ["Berlin, Germany", "Amsterdam, Netherlands"]
+            requirements:
+              type: object
+              nullable: true
+              properties:
+                qualifications:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Bachelor's degree in Computer Science or equivalent"]
+                hard_skills:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Go", "PostgreSQL", "Kubernetes"]
+                soft_skills:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Communication", "Problem-solving"]
+                others:
+                  type: array
+                  items:
+                    type: string
+            parsed_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    SearchResult:
+      type: object
+      description: Job search result with relevance ranking
+      allOf:
+        - type: object
+          properties:
+            rank:
+              type: number
+              format: float
+              description: Full-text relevance score (0.0 if no query was provided)
+              example: 0.42
+        - $ref: "#/components/schemas/Job"
+
+    JobSubmission:
+      type: object
+      required:
+        - origin
+        - title
+        - description
+      properties:
+        origin:
+          type: object
+          required:
+            - source
+          properties:
+            source:
+              type: string
+              minLength: 1
+              maxLength: 200
+              description: Unique name identifying the submitter (scraper name, "direct", company slug, etc.)
+              example: "my-scraper-v2"
+            reference:
+              type: string
+              maxLength: 500
+              description: Original job ID from the source. Combined with `source` for deduplication.
+              example: "job-12345"
+            contact:
+              type: object
+              description: Contact person associated with this job origin
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+        title:
+          type: string
+          minLength: 2
+          maxLength: 500
+          example: "Senior Backend Engineer"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 100000
+          example: "We are looking for a senior backend engineer..."
+        responsibilities:
+          type: array
+          items:
+            type: string
+          example: ["Design scalable APIs", "Code reviews"]
+        company:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Acme Corp"
+            website:
+              type: string
+              format: uri
+              example: "https://acme.com"
+            sector:
+              type: string
+              example: "Technology"
+            anecdote:
+              type: string
+              example: "We are a fast-growing startup building the future of logistics."
+            location:
+              type: array
+              items:
+                type: string
+              description: Physical office locations
+              example: ["Berlin, Germany", "Remote"]
+        employment_type:
+          type: string
+          example: "full-time"
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+              example: "Berlin"
+            country:
+              type: string
+              example: "Germany"
+            remote:
+              type: object
+              properties:
+                full:
+                  type: boolean
+                  description: True if the job is fully remote
+                days:
+                  type: integer
+                  minimum: 0
+                  maximum: 7
+                  description: Days per week remote (for hybrid roles)
+        requirements:
+          type: object
+          properties:
+            qualifications:
+              type: array
+              items:
+                type: string
+            hard_skills:
+              type: array
+              items:
+                type: string
+              example: ["Go", "PostgreSQL", "Docker"]
+            soft_skills:
+              type: array
+              items:
+                type: string
+            others:
+              type: array
+              items:
+                type: string
+        salary:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: "EUR"
+            min:
+              type: number
+              minimum: 0
+              example: 80000
+            max:
+              type: number
+              minimum: 0
+              example: 120000
+            period:
+              type: string
+              enum: [hourly, daily, weekly, monthly, yearly]
+              example: "yearly"
+        benefits:
+          type: array
+          items:
+            type: string
+          example: ["Health insurance", "30 days vacation"]
+        posted_at:
+          type: string
+          format: date-time
+          description: When this job was originally posted at the source
+        parsed_at:
+          type: string
+          format: date-time
+          description: When this job was parsed/extracted by the scraper
+
+    SubmissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The UUID of the newly created job
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          description: Structured validation error details (present on 422 responses)
+
+paths:
+  /jobs:
+    get:
+      tags: [Jobs]
+      summary: List jobs
+      description: |
+        Returns a paginated list of active jobs using PostgREST query syntax.
+
+        **Common filter examples:**
+        - `?location_country=eq.France` — jobs in France
+        - `?remote_full=eq.true` — fully remote jobs
+        - `?employment_type=eq.full-time`
+        - `?salary_min=gte.50000` — salary floor ≥ 50,000
+        - `?title=ilike.*engineer*` — title contains "engineer"
+        - `?company_name=ilike.*google*`
+        - `?order=posted_at.desc&limit=20&offset=0` — paginated, newest first
+
+        Use `select` to request only specific columns:
+        `?select=id,title,company_name,salary_min,salary_max`
+      parameters:
+        - in: header
+          name: apikey
+          required: true
+          schema:
+            type: string
+          description: Supabase anon key
+        - in: query
+          name: select
+          schema:
+            type: string
+          description: "Comma-separated column list. Example: `id,title,company_name,location_country`"
+        - in: query
+          name: title
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `ilike.*engineer*`"
+        - in: query
+          name: location_country
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `eq.Germany`"
+        - in: query
+          name: location_city
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `eq.Berlin`"
+        - in: query
+          name: remote_full
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `eq.true`"
+        - in: query
+          name: employment_type
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `eq.full-time`"
+        - in: query
+          name: salary_min
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `gte.50000`"
+        - in: query
+          name: salary_max
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `lte.200000`"
+        - in: query
+          name: company_name
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `ilike.*acme*`"
+        - in: query
+          name: source
+          schema:
+            type: string
+          description: "PostgREST filter. Example: `eq.linkedin-scraper`"
+        - in: query
+          name: order
+          schema:
+            type: string
+          description: "Sort order. Example: `posted_at.desc` or `created_at.desc`"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            maximum: 1000
+            default: 100
+          description: Maximum number of results to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip (for pagination)
+      responses:
+        "200":
+          description: Array of job listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+              example:
+                - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  title: "Senior Backend Engineer"
+                  company_name: "Acme Corp"
+                  location_country: "Germany"
+                  location_city: "Berlin"
+                  remote_full: true
+                  employment_type: "full-time"
+                  salary_currency: "EUR"
+                  salary_min: 80000
+                  salary_max: 120000
+                  salary_period: "yearly"
+                  posted_at: "2026-02-20T10:00:00Z"
+
+  /rpc/search_jobs:
+    post:
+      tags: [Jobs]
+      summary: Full-text search jobs
+      description: |
+        Advanced search with full-text ranking and combined filters.
+        Results are ranked by relevance when a `query` string is provided.
+
+        The search is weighted: job title has the highest weight, followed by company name,
+        description, and location.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Full-text search query (supports natural language, quoted phrases, etc.)
+                  example: "senior golang engineer kubernetes"
+                country:
+                  type: string
+                  example: "Germany"
+                city:
+                  type: string
+                  example: "Berlin"
+                remote:
+                  type: boolean
+                  description: Filter to fully remote jobs
+                  example: true
+                employment:
+                  type: string
+                  description: Employment type filter (case-insensitive)
+                  example: "full-time"
+                salary_min_val:
+                  type: number
+                  description: Minimum salary filter (inclusive)
+                  example: 60000
+                salary_max_val:
+                  type: number
+                  description: Maximum salary filter (inclusive)
+                  example: 150000
+                source_filter:
+                  type: string
+                  description: Filter by source name (case-insensitive)
+                  example: "linkedin"
+                page_num:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  description: Page number (1-based)
+                page_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 20
+                  description: Results per page (max 100)
+            example:
+              query: "senior backend engineer"
+              country: "Germany"
+              remote: true
+              salary_min_val: 80000
+              page_num: 1
+              page_size: 20
+      responses:
+        "200":
+          description: Ranked search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
+
+  /rpc/get_job_detail:
+    post:
+      tags: [Jobs]
+      summary: Get full job detail
+      description: |
+        Returns a complete job record including the full description, responsibilities,
+        requirements, benefits, and all nested JSONB fields.
+
+        The `GET /jobs?id=eq.{uuid}` endpoint also works but returns all columns including
+        internal ones. This RPC returns only the intended public fields.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - job_id
+              properties:
+                job_id:
+                  type: string
+                  format: uuid
+                  example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        "200":
+          description: Full job detail (array with 0 or 1 items)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobDetail"
+                maxItems: 1
+
+  /submit-job:
+    get:
+      tags: [Submission]
+      summary: Health check
+      description: Returns the health status of the submit-job endpoint.
+      security: []
+      responses:
+        "200":
+          description: Endpoint is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  endpoint:
+                    type: string
+                    example: "submit-job"
+
+    post:
+      tags: [Submission]
+      summary: Submit a job listing
+      description: |
+        Submit a new job listing to the open job board.
+
+        **Rate limits:**
+        - Anonymous (no API key): 10 requests per minute per IP
+        - With valid `X-API-Key`: configurable higher limit (default 100/min)
+
+        **Deduplication:** If a job with the same `origin.source` and `origin.reference`
+        already exists, the request returns HTTP 409. This allows scrapers to safely
+        re-submit without creating duplicates.
+
+        **Partial submissions are fine:** Only `origin.source`, `title`, and `description`
+        are required. All other fields are optional.
+      security:
+        - {}
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobSubmission"
+            examples:
+              minimal:
+                summary: Minimal required fields only
+                value:
+                  origin:
+                    source: "my-scraper"
+                  title: "Python Developer"
+                  description: "Join our team as a Python developer building data pipelines."
+              full:
+                summary: Full job with all optional fields
+                value:
+                  origin:
+                    source: "my-scraper"
+                    reference: "job-99999"
+                    contact:
+                      name: "Jane Recruiter"
+                      email: "jobs@acme.com"
+                  title: "Senior Backend Engineer"
+                  description: "We are looking for a senior backend engineer to join our platform team and help us scale to millions of users."
+                  responsibilities:
+                    - "Design and build scalable REST APIs"
+                    - "Own and improve database performance"
+                    - "Mentor junior engineers"
+                  company:
+                    name: "Acme Corp"
+                    website: "https://acme.com"
+                    sector: "Technology"
+                    anecdote: "We are a fast-growing startup reimagining B2B logistics."
+                    location:
+                      - "Berlin, Germany"
+                      - "Amsterdam, Netherlands"
+                  employment_type: "full-time"
+                  location:
+                    city: "Berlin"
+                    country: "Germany"
+                    remote:
+                      full: true
+                  requirements:
+                    qualifications:
+                      - "5+ years of professional backend experience"
+                    hard_skills:
+                      - "Go or Rust"
+                      - "PostgreSQL"
+                      - "Kubernetes"
+                    soft_skills:
+                      - "Strong written communication"
+                  salary:
+                    currency: "EUR"
+                    min: 90000
+                    max: 130000
+                    period: "yearly"
+                  benefits:
+                    - "30 days vacation"
+                    - "Health insurance"
+                    - "Learning budget €2,000/year"
+                  posted_at: "2026-02-27T10:00:00Z"
+                  parsed_at: "2026-02-27T11:30:00Z"
+      responses:
+        "201":
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionResponse"
+              example:
+                id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                created_at: "2026-02-27T12:00:00Z"
+        "400":
+          description: Invalid JSON body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Duplicate — a job with the same source + reference already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Duplicate job: this source + reference already exists."
+        "422":
+          description: Validation error — request body failed schema validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Validation failed"
+                details:
+                  fieldErrors:
+                    title: ["String must contain at least 2 character(s)"]
+                  formErrors: []
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Rate limit exceeded. Retry after 60 seconds."
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

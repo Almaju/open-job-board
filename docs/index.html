@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Job Board</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1 class="logo">Open Job Board</h1>
+      <nav>
+        <a href="search.html">Search Jobs</a>
+        <a href="docs.html">API Docs</a>
+        <a href="https://github.com/almaju/open-job-board">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h2>A free, open API for job listings</h2>
+      <p>Anyone can post jobs. Anyone can query them. No sign-up required.</p>
+      <div class="hero-actions">
+        <a href="search.html" class="btn btn-primary">Search Jobs</a>
+        <a href="docs.html" class="btn btn-secondary">API Documentation</a>
+      </div>
+    </section>
+
+    <section class="quick-start">
+      <h2>Quick Start</h2>
+
+      <h3>Query jobs</h3>
+      <pre><code class="language-bash"># List recent remote jobs
+curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?remote_full=eq.true&order=posted_at.desc&limit=10" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"
+
+# Full-text search
+curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "senior golang engineer", "country": "Germany", "remote": true}'</code></pre>
+
+      <h3>Submit a job</h3>
+      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin": { "source": "my-scraper", "reference": "job-12345" },
+    "title": "Senior Backend Engineer",
+    "description": "We are looking for a backend engineer...",
+    "company": { "name": "Acme Corp", "sector": "Technology" },
+    "location": { "city": "Berlin", "country": "Germany", "remote": { "full": true } },
+    "employment_type": "full-time",
+    "salary": { "currency": "EUR", "min": 80000, "max": 120000, "period": "yearly" }
+  }'</code></pre>
+    </section>
+
+    <section class="features">
+      <h2>How it works</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Open Submissions</h3>
+          <p>Submit jobs via a simple REST API. No account required. Rate limited to 10 req/min per IP. Use an API key for higher limits.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Deduplication</h3>
+          <p>Scrapers can re-submit safely. The API returns HTTP 409 when the same <code>source + reference</code> already exists — no duplicates.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Full-Text Search</h3>
+          <p>Search across title, company, description, and location with relevance ranking via PostgreSQL <code>tsvector</code>.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Powerful Filtering</h3>
+          <p>Filter by country, city, remote, employment type, salary range, and source. Sort by recency or relevance.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="api-key-section">
+      <h2>Get an API Key</h2>
+      <p>For trusted scrapers or high-volume use cases, <a href="https://github.com/almaju/open-job-board/issues/new?title=API+Key+Request&body=Name%3A%0AEstimated+volume%3A%0AContact+email%3A">open a GitHub issue</a> with your scraper name, estimated volume, and contact email. API keys unlock higher rate limits.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>

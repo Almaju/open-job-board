@@ -1,0 +1,25 @@
+name: Validate OpenAPI Spec
+
+on:
+  pull_request:
+    paths:
+      - "docs/openapi.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/openapi.yaml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Redocly CLI
+        run: npm install -g @redocly/cli@latest
+
+      - name: Lint OpenAPI spec
+        run: redocly lint docs/openapi.yaml
+
+      - name: Build docs preview (dry run)
+        run: redocly build-docs docs/openapi.yaml --output /tmp/redoc-preview.html
