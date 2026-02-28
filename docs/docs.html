@@ -3,59 +3,650 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Documentation - Open Job Board</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
-  <style>
-    body { margin: 0; }
-    .topbar { display: none; }
-    .swagger-ui .info .title { font-size: 2em; }
-    #site-nav {
-      background: #1a1a2e;
-      padding: 12px 24px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-    #site-nav a {
-      color: #fff;
-      text-decoration: none;
-      font-family: sans-serif;
-      font-size: 14px;
-      opacity: 0.85;
-    }
-    #site-nav a:first-child {
-      font-weight: 700;
-      font-size: 16px;
-      opacity: 1;
-    }
-    #site-nav a:hover { opacity: 1; }
-  </style>
+  <title>Documentation - Open Job Board</title>
+  <meta name="description" content="Complete API documentation for the Open Job Board. Learn how to query, search, and submit job listings.">
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <nav id="site-nav">
-    <a href="index.html">Open Job Board</a>
-    <a href="search.html">Search Jobs</a>
-    <a href="docs.html">API Docs</a>
-    <a href="https://github.com/almaju/open-job-board">GitHub</a>
-  </nav>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon"></div>
+        Open Job Board
+      </a>
+      <button class="nav-toggle" onclick="document.querySelector('.site-header nav').classList.toggle('open')" aria-label="Toggle navigation">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+      </button>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="docs.html" class="active">Documentation</a>
+        <a href="api.html">API Explorer</a>
+        <a href="search.html">Search Jobs</a>
+        <span class="nav-separator"></span>
+        <a href="https://github.com/almaju/open-job-board">GitHub</a>
+      </nav>
+    </div>
+  </header>
 
-  <div id="swagger-ui"></div>
+  <div class="docs-layout">
+    <aside class="docs-sidebar" id="docs-sidebar">
+      <div class="docs-sidebar-section">
+        <h4>Getting Started</h4>
+        <a href="#introduction">Introduction</a>
+        <a href="#quick-start">Quick Start</a>
+        <a href="#authentication">Authentication</a>
+        <a href="#create-api-key">Create API Key</a>
+      </div>
+      <div class="docs-sidebar-section">
+        <h4>Endpoints</h4>
+        <a href="#list-jobs">List Jobs</a>
+        <a href="#search-jobs">Search Jobs</a>
+        <a href="#get-job-detail">Get Job Detail</a>
+        <a href="#submit-job">Submit a Job</a>
+      </div>
+      <div class="docs-sidebar-section">
+        <h4>Reference</h4>
+        <a href="#filtering">Filtering &amp; Sorting</a>
+        <a href="#rate-limits">Rate Limits</a>
+        <a href="#error-codes">Error Codes</a>
+        <a href="#job-schema">Job Schema</a>
+      </div>
+    </aside>
 
-  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <main class="docs-content">
+      <!-- Introduction -->
+      <h1 id="introduction">Documentation</h1>
+      <p class="subtitle">Everything you need to integrate with the Open Job Board API.</p>
+
+      <p>The Open Job Board API is a free, open REST API for job listings. You can query thousands of jobs, perform full-text searches, and submit new listings. No sign-up is required for reading data.</p>
+
+      <div class="alert alert-info">
+        <p>Want to explore the API interactively? Try the <a href="api.html">API Explorer</a> with built-in request testing.</p>
+      </div>
+
+      <h3>Base URLs</h3>
+      <table>
+        <thead>
+          <tr><th>Purpose</th><th>Base URL</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Read API (list, search, detail)</td>
+            <td><code>https://ppubgurkauoptjsuyfff.supabase.co/rest/v1</code></td>
+          </tr>
+          <tr>
+            <td>Write API (submit jobs, create keys)</td>
+            <td><code>https://ppubgurkauoptjsuyfff.supabase.co/functions/v1</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Quick Start -->
+      <h2 id="quick-start">Quick Start</h2>
+
+      <p>Get up and running in under a minute. All read endpoints require the public API key in the <code>apikey</code> header.</p>
+
+      <h3>1. Search for jobs</h3>
+      <p>Use full-text search to find relevant jobs:</p>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "senior backend engineer",
+    "country": "Germany",
+    "remote": true,
+    "page_num": 1,
+    "page_size": 20
+  }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>2. List jobs with filters</h3>
+      <p>Use query parameters to filter and paginate:</p>
+      <div class="code-block">
+        <pre><code>curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?remote_full=eq.true&amp;order=posted_at.desc&amp;limit=20" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>3. Submit a job</h3>
+      <p>Post a new job listing (no auth required, but rate limited):</p>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin": { "source": "my-scraper", "reference": "job-123" },
+    "title": "Senior Backend Engineer",
+    "description": "We are looking for a backend engineer to join our platform team.",
+    "company": { "name": "Acme Corp", "sector": "Technology" },
+    "location": { "city": "Berlin", "country": "Germany", "remote": { "full": true } },
+    "employment_type": "full-time",
+    "salary": { "currency": "EUR", "min": 80000, "max": 120000, "period": "yearly" }
+  }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Authentication -->
+      <h2 id="authentication">Authentication</h2>
+
+      <h3>Public API Key (for reading)</h3>
+      <p>All read endpoints require a public API key in the <code>apikey</code> header. This key is intentionally public and safe to use in client-side code:</p>
+      <div class="code-block">
+        <pre><code>apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <p>Include it with every read request (list, search, detail endpoints).</p>
+
+      <h3>API Key for Writing (optional)</h3>
+      <p>Job submissions work without authentication but are rate limited to <strong>10 requests per minute</strong> per IP address.</p>
+      <p>For higher rate limits (100 req/min by default), include an API key in the <code>X-API-Key</code> header:</p>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ojb_your_api_key_here" \
+  -d '{ ... }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <p>You can <a href="#create-api-key">create an API key instantly</a> below.</p>
+
+      <!-- Create API Key -->
+      <h2 id="create-api-key">Create API Key</h2>
+
+      <p>Generate an API key for higher rate limits on job submissions. Your key is hashed server-side and never stored in plaintext. <strong>Save it immediately</strong> &mdash; it will only be shown once.</p>
+
+      <form id="create-key-form" style="max-width: 400px; margin: 24px 0;">
+        <div class="form-group">
+          <label for="key-name">Key Name</label>
+          <input type="text" id="key-name" placeholder="e.g. my-job-scraper" required minlength="1" maxlength="100">
+          <span class="form-hint">A label to identify this key</span>
+        </div>
+        <div class="form-group">
+          <label for="key-email">Email</label>
+          <input type="email" id="key-email" placeholder="you@example.com" required maxlength="320">
+          <span class="form-hint">For key recovery and important updates</span>
+        </div>
+        <button type="submit" class="btn btn-primary" id="create-key-btn">Generate API Key</button>
+      </form>
+
+      <div id="key-result"></div>
+
+      <!-- List Jobs -->
+      <h2 id="list-jobs">List Jobs</h2>
+      <p>
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/rest/v1/jobs</span>
+      </p>
+      <p>Returns a paginated list of active job listings. Supports powerful filtering with query parameters.</p>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <pre><code>curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?location_country=eq.Germany&amp;remote_full=eq.true&amp;order=posted_at.desc&amp;limit=20&amp;offset=0" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>select</code></td><td>string</td><td>Comma-separated columns to return, e.g. <code>id,title,company_name</code></td></tr>
+          <tr><td><code>title</code></td><td>string</td><td>Filter by title, e.g. <code>ilike.*engineer*</code></td></tr>
+          <tr><td><code>location_country</code></td><td>string</td><td>Filter by country, e.g. <code>eq.Germany</code></td></tr>
+          <tr><td><code>location_city</code></td><td>string</td><td>Filter by city, e.g. <code>eq.Berlin</code></td></tr>
+          <tr><td><code>remote_full</code></td><td>string</td><td>Remote filter, e.g. <code>eq.true</code></td></tr>
+          <tr><td><code>employment_type</code></td><td>string</td><td>Employment type, e.g. <code>eq.full-time</code></td></tr>
+          <tr><td><code>salary_min</code></td><td>string</td><td>Min salary, e.g. <code>gte.50000</code></td></tr>
+          <tr><td><code>salary_max</code></td><td>string</td><td>Max salary, e.g. <code>lte.200000</code></td></tr>
+          <tr><td><code>company_name</code></td><td>string</td><td>Company filter, e.g. <code>ilike.*acme*</code></td></tr>
+          <tr><td><code>source</code></td><td>string</td><td>Source filter, e.g. <code>eq.linkedin-scraper</code></td></tr>
+          <tr><td><code>order</code></td><td>string</td><td>Sort order, e.g. <code>posted_at.desc</code></td></tr>
+          <tr><td><code>limit</code></td><td>integer</td><td>Max results (default 100, max 1000)</td></tr>
+          <tr><td><code>offset</code></td><td>integer</td><td>Number of results to skip</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Response</h3>
+      <div class="code-block">
+        <pre><code>[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Senior Backend Engineer",
+    "company_name": "Acme Corp",
+    "location_country": "Germany",
+    "location_city": "Berlin",
+    "remote_full": true,
+    "employment_type": "full-time",
+    "salary_currency": "EUR",
+    "salary_min": 80000,
+    "salary_max": 120000,
+    "salary_period": "yearly",
+    "posted_at": "2026-02-20T10:00:00Z"
+  }
+]</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Search Jobs -->
+      <h2 id="search-jobs">Search Jobs</h2>
+      <p>
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/rest/v1/rpc/search_jobs</span>
+      </p>
+      <p>Full-text search with relevance ranking. Results are scored by how well they match the query. The search is weighted: job title has the highest weight, followed by company name, description, and location.</p>
+
+      <h3>Request Body</h3>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>query</code></td><td>string</td><td>Search query (natural language, quoted phrases)</td></tr>
+          <tr><td><code>country</code></td><td>string</td><td>Filter by country</td></tr>
+          <tr><td><code>city</code></td><td>string</td><td>Filter by city</td></tr>
+          <tr><td><code>remote</code></td><td>boolean</td><td>Only fully remote jobs</td></tr>
+          <tr><td><code>employment</code></td><td>string</td><td>Employment type (case-insensitive)</td></tr>
+          <tr><td><code>salary_min_val</code></td><td>number</td><td>Minimum salary filter</td></tr>
+          <tr><td><code>salary_max_val</code></td><td>number</td><td>Maximum salary filter</td></tr>
+          <tr><td><code>source_filter</code></td><td>string</td><td>Filter by source name</td></tr>
+          <tr><td><code>page_num</code></td><td>integer</td><td>Page number (default 1)</td></tr>
+          <tr><td><code>page_size</code></td><td>integer</td><td>Results per page (default 20, max 100)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "senior backend engineer",
+    "country": "Germany",
+    "remote": true,
+    "salary_min_val": 80000,
+    "page_num": 1,
+    "page_size": 20
+  }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>Response</h3>
+      <p>Same as the Job schema, plus a <code>rank</code> field with the relevance score:</p>
+      <div class="code-block">
+        <pre><code>[
+  {
+    "rank": 0.42,
+    "id": "a1b2c3d4-...",
+    "title": "Senior Backend Engineer",
+    "company_name": "Acme Corp",
+    ...
+  }
+]</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Get Job Detail -->
+      <h2 id="get-job-detail">Get Job Detail</h2>
+      <p>
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/rest/v1/rpc/get_job_detail</span>
+      </p>
+      <p>Returns the complete job record including full description, responsibilities, requirements, benefits, and all nested fields.</p>
+
+      <h3>Example</h3>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/get_job_detail" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
+  -H "Content-Type: application/json" \
+  -d '{"job_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"}'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>Response</h3>
+      <p>Returns an array with 0 or 1 items. Includes all fields from the Job schema plus:</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>description</code></td><td>string</td><td>Full job description</td></tr>
+          <tr><td><code>responsibilities</code></td><td>string[]</td><td>List of responsibilities</td></tr>
+          <tr><td><code>benefits</code></td><td>string[]</td><td>List of benefits</td></tr>
+          <tr><td><code>requirements</code></td><td>object</td><td>Qualifications, hard/soft skills</td></tr>
+          <tr><td><code>contact</code></td><td>object</td><td>Contact person (name, email, phone)</td></tr>
+          <tr><td><code>company_anecdote</code></td><td>string</td><td>Brief company description</td></tr>
+          <tr><td><code>company_locations</code></td><td>string[]</td><td>Physical office locations</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Submit Job -->
+      <h2 id="submit-job">Submit a Job</h2>
+      <p>
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/functions/v1/submit-job</span>
+      </p>
+      <p>Submit a new job listing. Only <code>origin.source</code>, <code>title</code>, and <code>description</code> are required. All other fields are optional.</p>
+
+      <div class="alert alert-info">
+        <p><strong>Deduplication:</strong> If a job with the same <code>source</code> + <code>reference</code> already exists, the API returns HTTP 409. Scrapers can safely re-submit without creating duplicates.</p>
+      </div>
+
+      <h3>Required Fields</h3>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>origin.source</code></td><td>string</td><td>Unique name for the submitter (1-200 chars)</td></tr>
+          <tr><td><code>title</code></td><td>string</td><td>Job title (2-500 chars)</td></tr>
+          <tr><td><code>description</code></td><td>string</td><td>Job description (10-100,000 chars)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Optional Fields</h3>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>origin.reference</code></td><td>string</td><td>Original job ID from source (for deduplication)</td></tr>
+          <tr><td><code>origin.contact</code></td><td>object</td><td>Contact person: <code>name</code>, <code>email</code>, <code>phone</code></td></tr>
+          <tr><td><code>company</code></td><td>object</td><td><code>name</code>, <code>website</code>, <code>sector</code>, <code>anecdote</code>, <code>location[]</code></td></tr>
+          <tr><td><code>employment_type</code></td><td>string</td><td>e.g. "full-time", "part-time", "contract"</td></tr>
+          <tr><td><code>location</code></td><td>object</td><td><code>city</code>, <code>country</code>, <code>remote: {full, days}</code></td></tr>
+          <tr><td><code>requirements</code></td><td>object</td><td><code>qualifications[]</code>, <code>hard_skills[]</code>, <code>soft_skills[]</code>, <code>others[]</code></td></tr>
+          <tr><td><code>salary</code></td><td>object</td><td><code>currency</code>, <code>min</code>, <code>max</code>, <code>period</code> (hourly/daily/weekly/monthly/yearly)</td></tr>
+          <tr><td><code>benefits</code></td><td>string[]</td><td>List of benefits</td></tr>
+          <tr><td><code>responsibilities</code></td><td>string[]</td><td>List of responsibilities</td></tr>
+          <tr><td><code>posted_at</code></td><td>datetime</td><td>When originally posted (ISO 8601)</td></tr>
+          <tr><td><code>parsed_at</code></td><td>datetime</td><td>When parsed by scraper (ISO 8601)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Full Example</h3>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ojb_your_key_here" \
+  -d '{
+    "origin": {
+      "source": "my-scraper",
+      "reference": "job-99999",
+      "contact": { "name": "Jane", "email": "jobs@acme.com" }
+    },
+    "title": "Senior Backend Engineer",
+    "description": "We are looking for a senior backend engineer to join our platform team and help us scale to millions of users.",
+    "responsibilities": [
+      "Design and build scalable REST APIs",
+      "Own and improve database performance"
+    ],
+    "company": {
+      "name": "Acme Corp",
+      "website": "https://acme.com",
+      "sector": "Technology"
+    },
+    "employment_type": "full-time",
+    "location": {
+      "city": "Berlin",
+      "country": "Germany",
+      "remote": { "full": true }
+    },
+    "requirements": {
+      "hard_skills": ["Go", "PostgreSQL", "Kubernetes"],
+      "qualifications": ["5+ years backend experience"]
+    },
+    "salary": {
+      "currency": "EUR",
+      "min": 90000,
+      "max": 130000,
+      "period": "yearly"
+    },
+    "benefits": ["30 days vacation", "Health insurance"]
+  }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>Success Response (201)</h3>
+      <div class="code-block">
+        <pre><code>{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "created_at": "2026-02-27T12:00:00Z"
+}</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Filtering -->
+      <h2 id="filtering">Filtering &amp; Sorting</h2>
+
+      <p>The <code>GET /jobs</code> endpoint uses PostgREST query operators for filtering. Append filters as query parameters:</p>
+
+      <table>
+        <thead>
+          <tr><th>Operator</th><th>Meaning</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>eq.</code></td><td>Equals</td><td><code>?location_country=eq.France</code></td></tr>
+          <tr><td><code>ilike.</code></td><td>Case-insensitive pattern</td><td><code>?title=ilike.*engineer*</code></td></tr>
+          <tr><td><code>gte.</code></td><td>Greater than or equal</td><td><code>?salary_min=gte.50000</code></td></tr>
+          <tr><td><code>lte.</code></td><td>Less than or equal</td><td><code>?salary_max=lte.200000</code></td></tr>
+          <tr><td><code>is.</code></td><td>Is null/true/false</td><td><code>?remote_full=is.true</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Sorting</h3>
+      <p>Use the <code>order</code> parameter to sort results:</p>
+      <div class="code-block">
+        <pre><code># Newest first
+?order=posted_at.desc
+
+# By salary descending
+?order=salary_max.desc.nullslast
+
+# Multiple sort keys
+?order=location_country.asc,posted_at.desc</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>Selecting Columns</h3>
+      <p>Use the <code>select</code> parameter to request only specific fields:</p>
+      <div class="code-block">
+        <pre><code>?select=id,title,company_name,salary_min,salary_max,location_country</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Rate Limits -->
+      <h2 id="rate-limits">Rate Limits</h2>
+
+      <table>
+        <thead>
+          <tr><th>Tier</th><th>Limit</th><th>Scope</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anonymous (no API key)</td><td>10 requests/minute</td><td>Per IP address</td></tr>
+          <tr><td>With API key</td><td>100 requests/minute</td><td>Per API key</td></tr>
+        </tbody>
+      </table>
+
+      <p>Rate limits apply to the <strong>submit-job</strong> endpoint only. Read endpoints (list, search, detail) are not rate limited.</p>
+
+      <p>When the limit is exceeded, the API returns <code>429 Too Many Requests</code> with a <code>Retry-After: 60</code> header.</p>
+
+      <div class="alert alert-warning">
+        <p>If you provide an invalid API key, the request falls back to IP-based rate limiting silently.</p>
+      </div>
+
+      <!-- Error Codes -->
+      <h2 id="error-codes">Error Codes</h2>
+
+      <table>
+        <thead>
+          <tr><th>Code</th><th>Meaning</th><th>Details</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>200</code></td><td>Success</td><td>Request completed successfully</td></tr>
+          <tr><td><code>201</code></td><td>Created</td><td>Job submitted successfully</td></tr>
+          <tr><td><code>400</code></td><td>Bad Request</td><td>Invalid JSON body</td></tr>
+          <tr><td><code>405</code></td><td>Method Not Allowed</td><td>Wrong HTTP method</td></tr>
+          <tr><td><code>409</code></td><td>Conflict</td><td>Duplicate job (same source + reference)</td></tr>
+          <tr><td><code>422</code></td><td>Validation Error</td><td>Request body failed schema validation</td></tr>
+          <tr><td><code>429</code></td><td>Rate Limited</td><td>Too many requests, retry after 60s</td></tr>
+          <tr><td><code>500</code></td><td>Server Error</td><td>Internal server error</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Error Response Format</h3>
+      <div class="code-block">
+        <pre><code>{
+  "error": "Validation failed",
+  "details": {
+    "fieldErrors": {
+      "title": ["String must contain at least 2 character(s)"]
+    },
+    "formErrors": []
+  }
+}</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <!-- Job Schema -->
+      <h2 id="job-schema">Job Schema</h2>
+
+      <p>Fields returned by the list and search endpoints:</p>
+
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid</td><td>Unique job identifier</td></tr>
+          <tr><td><code>title</code></td><td>string</td><td>Job title</td></tr>
+          <tr><td><code>company_name</code></td><td>string?</td><td>Company name</td></tr>
+          <tr><td><code>company_sector</code></td><td>string?</td><td>Company industry</td></tr>
+          <tr><td><code>company_website</code></td><td>string?</td><td>Company website URL</td></tr>
+          <tr><td><code>location_city</code></td><td>string?</td><td>Job city</td></tr>
+          <tr><td><code>location_country</code></td><td>string?</td><td>Job country</td></tr>
+          <tr><td><code>remote_full</code></td><td>boolean?</td><td>True if fully remote</td></tr>
+          <tr><td><code>remote_days</code></td><td>integer?</td><td>Remote days per week (hybrid)</td></tr>
+          <tr><td><code>employment_type</code></td><td>string?</td><td>e.g. full-time, part-time, contract</td></tr>
+          <tr><td><code>salary_currency</code></td><td>string?</td><td>e.g. EUR, USD, GBP</td></tr>
+          <tr><td><code>salary_min</code></td><td>number?</td><td>Minimum salary</td></tr>
+          <tr><td><code>salary_max</code></td><td>number?</td><td>Maximum salary</td></tr>
+          <tr><td><code>salary_period</code></td><td>string?</td><td>hourly, daily, weekly, monthly, yearly</td></tr>
+          <tr><td><code>source</code></td><td>string</td><td>Name of the submitter</td></tr>
+          <tr><td><code>reference</code></td><td>string?</td><td>Original job ID from source</td></tr>
+          <tr><td><code>posted_at</code></td><td>datetime?</td><td>When originally posted</td></tr>
+          <tr><td><code>created_at</code></td><td>datetime</td><td>When added to the database</td></tr>
+          <tr><td><code>is_active</code></td><td>boolean</td><td>Whether the job is active</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+
+  <button class="sidebar-toggle" onclick="document.getElementById('docs-sidebar').classList.toggle('open')" aria-label="Toggle sidebar">
+    &#9776;
+  </button>
+
   <script>
-    SwaggerUIBundle({
-      url: "./openapi.yaml",
-      dom_id: "#swagger-ui",
-      presets: [
-        SwaggerUIBundle.presets.apis,
-        SwaggerUIBundle.SwaggerUIStandalonePreset,
-      ],
-      layout: "StandaloneLayout",
-      deepLinking: true,
-      tryItOutEnabled: true,
-      defaultModelsExpandDepth: 2,
-      defaultModelExpandDepth: 2,
+    function copyCode(btn) {
+      const code = btn.previousElementSibling.querySelector('code');
+      navigator.clipboard.writeText(code.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    // Highlight active sidebar link on scroll
+    const sections = document.querySelectorAll('[id]');
+    const sidebarLinks = document.querySelectorAll('.docs-sidebar-section a');
+
+    function updateActiveLink() {
+      let current = '';
+      sections.forEach(section => {
+        const top = section.getBoundingClientRect().top;
+        if (top < 120) current = section.id;
+      });
+      sidebarLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    updateActiveLink();
+
+    // Close sidebar on mobile when clicking a link
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        document.getElementById('docs-sidebar').classList.remove('open');
+      });
     });
+
+    // API Key creation form
+    const API_URL = 'https://ppubgurkauoptjsuyfff.supabase.co/functions/v1';
+
+    document.getElementById('create-key-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('key-name').value.trim();
+      const email = document.getElementById('key-email').value.trim();
+      const btn = document.getElementById('create-key-btn');
+      const resultDiv = document.getElementById('key-result');
+
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      resultDiv.innerHTML = '';
+
+      try {
+        const res = await fetch(`${API_URL}/create-api-key`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultDiv.innerHTML = `<div class="alert alert-error"><p>${escHtml(data.error || 'Something went wrong')}</p></div>`;
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <div class="alert alert-success">
+            <p><strong>API Key Created</strong></p>
+            <p>Save this key now. It will not be shown again.</p>
+            <div class="key-display">
+              <code id="api-key-value">${escHtml(data.key)}</code>
+              <button class="btn-copy" onclick="copyApiKey()">Copy</button>
+            </div>
+            <p>Rate limit: <strong>${data.rate_limit} requests/minute</strong></p>
+            <p>Use it in the <code>X-API-Key</code> header when submitting jobs.</p>
+          </div>
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<div class="alert alert-error"><p>Network error: ${escHtml(err.message)}</p></div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate API Key';
+      }
+    });
+
+    function copyApiKey() {
+      const key = document.getElementById('api-key-value').textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        const btn = document.querySelector('.key-display .btn-copy');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    function escHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
   </script>
 </body>
 </html>
