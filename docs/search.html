@@ -4,15 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Search Jobs - Open Job Board</title>
+  <meta name="description" content="Search thousands of job listings. Filter by location, remote, salary, and more.">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <header class="site-header">
     <div class="container">
-      <a href="index.html" class="logo">Open Job Board</a>
+      <a href="index.html" class="logo">
+        <div class="logo-icon"></div>
+        Open Job Board
+      </a>
+      <button class="nav-toggle" onclick="document.querySelector('.site-header nav').classList.toggle('open')" aria-label="Toggle navigation">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+      </button>
       <nav>
+        <a href="index.html">Home</a>
+        <a href="docs.html">Documentation</a>
+        <a href="api.html">API Explorer</a>
         <a href="search.html" class="active">Search Jobs</a>
-        <a href="docs.html">API Docs</a>
+        <span class="nav-separator"></span>
         <a href="https://github.com/almaju/open-job-board">GitHub</a>
       </nav>
     </div>
@@ -83,15 +93,15 @@
     <div id="results" class="results-grid"></div>
 
     <div id="pagination" class="pagination" hidden>
-      <button id="prev-btn" class="btn btn-secondary" disabled>Previous</button>
+      <button id="prev-btn" class="btn btn-secondary btn-sm" disabled>Previous</button>
       <span id="page-info"></span>
-      <button id="next-btn" class="btn btn-secondary">Next</button>
+      <button id="next-btn" class="btn btn-secondary btn-sm">Next</button>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>Open Job Board &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
+      <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
     </div>
   </footer>
 

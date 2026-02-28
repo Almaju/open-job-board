@@ -44,6 +44,8 @@ tags:
     description: Query job listings
   - name: Submission
     description: Submit new job listings
+  - name: API Keys
+    description: Create and manage API keys
 
 components:
   securitySchemes:
@@ -403,6 +405,44 @@ components:
         created_at:
           type: string
           format: date-time
+
+    CreateApiKeyRequest:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: A label to identify this API key
+          example: "my-job-scraper"
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: Contact email for key recovery and updates
+          example: "dev@example.com"
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          description: "The API key (shown only once — save it immediately)"
+          example: "ojb_a1b2c3d4e5f6..."
+        name:
+          type: string
+          description: The label provided for this key
+          example: "my-job-scraper"
+        rate_limit:
+          type: integer
+          description: Maximum requests per minute for this key
+          example: 100
+        message:
+          type: string
+          example: "Save this key now — it will not be shown again."
 
     Error:
       type: object
@@ -820,6 +860,97 @@ paths:
                 $ref: "#/components/schemas/Error"
               example:
                 error: "Rate limit exceeded. Retry after 60 seconds."
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /create-api-key:
+    get:
+      operationId: createApiKeyHealth
+      tags: [API Keys]
+      summary: Health check
+      description: Returns the health status of the create-api-key endpoint.
+      security: []
+      responses:
+        "200":
+          description: Endpoint is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  endpoint:
+                    type: string
+                    example: "create-api-key"
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      operationId: createApiKey
+      tags: [API Keys]
+      summary: Create an API key
+      description: |
+        Generate a new API key for higher rate limits on job submissions.
+
+        The key is returned in plaintext exactly once. It is hashed server-side
+        and never stored in plaintext. **Save the key immediately.**
+
+        **Rate limit:** 5 requests per minute per IP address.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyRequest"
+            example:
+              name: "my-job-scraper"
+              email: "dev@example.com"
+      responses:
+        "201":
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateApiKeyResponse"
+              example:
+                key: "ojb_a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef12345678"
+                name: "my-job-scraper"
+                rate_limit: 100
+                message: "Save this key now — it will not be shown again."
+        "400":
+          description: Invalid JSON body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Internal server error
           content:

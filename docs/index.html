@@ -3,16 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Open Job Board</title>
+  <title>Open Job Board - Free REST API for Job Listings</title>
+  <meta name="description" content="A free, open REST API for job listings. Submit and query jobs with a simple API. No sign-up required.">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <header class="site-header">
     <div class="container">
-      <h1 class="logo">Open Job Board</h1>
+      <a href="index.html" class="logo">
+        <div class="logo-icon"></div>
+        Open Job Board
+      </a>
+      <button class="nav-toggle" onclick="document.querySelector('.site-header nav').classList.toggle('open')" aria-label="Toggle navigation">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+      </button>
       <nav>
+        <a href="index.html" class="active">Home</a>
+        <a href="docs.html">Documentation</a>
+        <a href="api.html">API Explorer</a>
         <a href="search.html">Search Jobs</a>
-        <a href="docs.html">API Docs</a>
+        <span class="nav-separator"></span>
         <a href="https://github.com/almaju/open-job-board">GitHub</a>
       </nav>
     </div>
@@ -20,67 +30,88 @@
 
   <main class="container">
     <section class="hero">
-      <h2>A free, open API for job listings</h2>
-      <p>Anyone can post jobs. Anyone can query them. No sign-up required.</p>
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Open source &middot; MIT License
+      </div>
+      <h2>A free, open API<br>for job listings</h2>
+      <p>Query thousands of jobs or submit your own with a simple REST API. No sign-up required for reading. Get an API key for higher write limits.</p>
       <div class="hero-actions">
-        <a href="search.html" class="btn btn-primary">Search Jobs</a>
-        <a href="docs.html" class="btn btn-secondary">API Documentation</a>
+        <a href="docs.html" class="btn btn-primary">Get Started</a>
+        <a href="api.html" class="btn btn-secondary">API Explorer</a>
       </div>
     </section>
 
     <section class="quick-start">
       <h2>Quick Start</h2>
+      <p>Start querying jobs in seconds with a single HTTP request.</p>
 
-      <h3>Query jobs</h3>
-      <pre><code class="language-bash"># List recent remote jobs
-curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?remote_full=eq.true&order=posted_at.desc&limit=10" \
-  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"
-
-# Full-text search
-curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
+      <h3>Search for jobs</h3>
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" \
   -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B" \
   -H "Content-Type: application/json" \
-  -d '{"query": "senior golang engineer", "country": "Germany", "remote": true}'</code></pre>
+  -d '{"query": "senior golang engineer", "remote": true}'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+
+      <h3>List remote jobs</h3>
+      <div class="code-block">
+        <pre><code>curl "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/jobs?remote_full=eq.true&amp;order=posted_at.desc&amp;limit=10" \
+  -H "apikey: sb_publishable_S9AJoMdDWsX1cPOXpM3LJw_pqdn9U0B"</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
 
       <h3>Submit a job</h3>
-      <pre><code class="language-bash">curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
+      <div class="code-block">
+        <pre><code>curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/functions/v1/submit-job" \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
   -d '{
-    "origin": { "source": "my-scraper", "reference": "job-12345" },
+    "origin": { "source": "my-scraper", "reference": "job-123" },
     "title": "Senior Backend Engineer",
     "description": "We are looking for a backend engineer...",
-    "company": { "name": "Acme Corp", "sector": "Technology" },
-    "location": { "city": "Berlin", "country": "Germany", "remote": { "full": true } },
-    "employment_type": "full-time",
-    "salary": { "currency": "EUR", "min": 80000, "max": 120000, "period": "yearly" }
+    "company": { "name": "Acme Corp" },
+    "location": { "country": "Germany", "remote": { "full": true } }
   }'</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
     </section>
 
     <section class="features">
-      <h2>How it works</h2>
+      <h2>Features</h2>
+      <p>Everything you need to build on top of job data.</p>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3>Open Submissions</h3>
-          <p>Submit jobs via a simple REST API. No account required. Rate limited to 10 req/min per IP. Use an API key for higher limits.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Deduplication</h3>
-          <p>Scrapers can re-submit safely. The API returns HTTP 409 when the same <code>source + reference</code> already exists — no duplicates.</p>
-        </div>
-        <div class="feature-card">
+          <div class="feature-card-icon">&#x1F50D;</div>
           <h3>Full-Text Search</h3>
-          <p>Search across title, company, description, and location with relevance ranking via PostgreSQL <code>tsvector</code>.</p>
+          <p>Search across titles, companies, descriptions, and locations with relevance ranking. Filter by country, remote, salary, and more.</p>
         </div>
         <div class="feature-card">
-          <h3>Powerful Filtering</h3>
-          <p>Filter by country, city, remote, employment type, salary range, and source. Sort by recency or relevance.</p>
+          <div class="feature-card-icon">&#x1F4E4;</div>
+          <h3>Open Submissions</h3>
+          <p>Submit jobs via a simple POST request. No account required. Rate limited to 10 requests/min per IP, or 100/min with an API key.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">&#x1F6E1;</div>
+          <h3>Deduplication</h3>
+          <p>Scrapers can safely re-submit. The API returns HTTP 409 when the same source + reference already exists. No duplicates.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">&#x1F511;</div>
+          <h3>API Keys</h3>
+          <p>Generate an API key instantly for higher rate limits. Keys are hashed and never stored in plaintext.</p>
         </div>
       </div>
     </section>
 
     <section class="api-key-section">
-      <h2>Get an API Key</h2>
-      <p>For trusted scrapers or high-volume use cases, <a href="https://github.com/almaju/open-job-board/issues/new?title=API+Key+Request&body=Name%3A%0AEstimated+volume%3A%0AContact+email%3A">open a GitHub issue</a> with your scraper name, estimated volume, and contact email. API keys unlock higher rate limits.</p>
+      <h2>Ready to build?</h2>
+      <p>Read the documentation to learn more, or jump straight into the API explorer.</p>
+      <div class="hero-actions">
+        <a href="docs.html" class="btn btn-primary">Read the Docs</a>
+        <a href="docs.html#create-api-key" class="btn btn-secondary">Get an API Key</a>
+      </div>
     </section>
   </main>
 
@@ -89,5 +120,16 @@ curl -X POST "https://ppubgurkauoptjsuyfff.supabase.co/rest/v1/rpc/search_jobs" 
       <p>Open Job Board &mdash; MIT License &mdash; <a href="https://github.com/almaju/open-job-board">GitHub</a></p>
     </div>
   </footer>
+
+  <script>
+    function copyCode(btn) {
+      const code = btn.previousElementSibling.querySelector('code');
+      navigator.clipboard.writeText(code.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>
