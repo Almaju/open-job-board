@@ -26,8 +26,25 @@ jobs:
 
       - name: Extract Supabase keys
         run: |
-          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d= -f2-)" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d= -f2-)" >> "$GITHUB_ENV"
+          # Print raw output format for debugging (values are masked by GitHub)
+          supabase status -o env
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d= -f2- | tr -d '\"')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep SERVICE_ROLE_KEY | cut -d= -f2- | tr -d '\"')" >> "$GITHUB_ENV"
+
+      - name: Verify PostgREST connectivity
+        run: |
+          # Ensure anon key works with PostgREST before running tests
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            http://127.0.0.1:54321/rest/v1/jobs?limit=1 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::PostgREST auth check failed with status $STATUS — keys may be malformed"
+            echo "ANON_KEY length: ${#SUPABASE_ANON_KEY}"
+            echo "First 4 chars: ${SUPABASE_ANON_KEY:0:4}"
+            exit 1
+          fi
+          echo "PostgREST auth OK"
 
       - name: Serve Edge Functions
         run: supabase functions serve --no-verify-jwt &
