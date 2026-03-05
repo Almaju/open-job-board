@@ -3,11 +3,11 @@ name: Validate OpenAPI Spec
 on:
   pull_request:
     paths:
-      - "docs/openapi.yaml"
+      - "docs/docs/openapi.yaml"
   push:
     branches: [main]
     paths:
-      - "docs/openapi.yaml"
+      - "docs/docs/openapi.yaml"
 
 jobs:
   validate:
@@ -19,7 +19,7 @@ jobs:
         run: npm install -g @redocly/cli@latest
 
       - name: Lint OpenAPI spec
-        run: redocly lint docs/openapi.yaml
+        run: redocly lint docs/docs/openapi.yaml
 
       - name: Build docs preview (dry run)
-        run: redocly build-docs docs/openapi.yaml --output /tmp/redoc-preview.html
+        run: redocly build-docs docs/docs/openapi.yaml --output /tmp/redoc-preview.html
