@@ -113,7 +113,7 @@ export async function queryJobs(params: string = ""): Promise<Response> {
  * Deletes all rate limit records to avoid interference between tests.
  */
 export async function clearRateLimits(): Promise<void> {
-  const res = await fetch(`${REST_URL}/rate_limits?id=gt.0`, {
+  const res = await fetch(`${REST_URL}/rate_limits?identifier=neq.`, {
     method: "DELETE",
     headers: {
       apikey: SERVICE_ROLE_KEY,
